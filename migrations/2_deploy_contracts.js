@@ -11,33 +11,18 @@ module.exports = function(deployer) {
 
 var MetaContract = artifacts.require("./MetaContract.sol");
 var GameContract = artifacts.require("./GameContract.sol");
+var Types = artifacts.require("./Types.sol");
 
 var metaContract, gameContract;
 module.exports = function(deployer) {
-  deployer.deploy(MetaContract).then(function() {
-    return deployer.deploy(GameContract);
-  }).then(function() {
-    var gameContract = GameContract.deployed();
-    return GameContract.deployed().then(instance =>
-      instance.setMetaContract(MetaContract.address));
+  deployer.deploy(Types).then(function() {
+    deployer.link(Types,[MetaContract,GameContract]);
+    deployer.deploy(MetaContract).then(function() {
+      return deployer.deploy(GameContract);
+    }).then(function() {
+      return GameContract.deployed().then(instance =>
+        instance.setMetaContract(setDataContract.address));
+   });
  });
 };
-
-//module.exports = function(deployer) {
-//  deployer.then(function() {
-//    return MetaContract.deployed();
-//  }).then(function(instance) {
-//    metaContract = instance;
-//    return GameContract.deployed();
-//  }).then(function(instance) {
-//    gameContract = instance;
-//    //return b.setMetaContract(metaContract.address);
-//  });
-//};
-
-
-
-
-
-
 

@@ -1,8 +1,9 @@
 pragma solidity ^0.4.4;
 
 //import "./Utils.sol";
+import "./Types.sol";
 
-contract MetaContract {
+contract DataContract {
   
 	//constants
 	//modifiers coin -> othertype
@@ -11,18 +12,19 @@ contract MetaContract {
 	//stats
 
   //todo: move these types into a library
+  //all 
 
-	struct CoinMeta {
+	struct CoinData {
 		uint8 id; //id 0 is reserved
 		string name; //name of coin, ethereum, bitcoin
 		string nameShort; //short name of coin, eth, btc
 		string description; //short description about coin
 	}
 
-	uint8 coinNextId; //init at 1
-	mapping(uint8 => CoinMeta) coinTable;
+	uint8 public coinNextId = 1; //init at 1
+	mapping(uint8 => CoinData) public coinTable;
 
-	struct ItemMeta {
+	struct ItemData {
 		uint8 id; //item id
 		string name; //item name
 		string description; //item description
@@ -31,10 +33,10 @@ contract MetaContract {
 		uint256 baseIncome; //base price of the item, in abstract currency
 	}
 
-	uint8 itemNextId; //init at 1
-	mapping(uint8 => ItemMeta) itemTable;
+	uint8 public itemNextId; //init at 1
+	mapping(uint8 => ItemData) public itemTable;
 
-	struct UpgradeMeta {
+	struct UpgradeData {
 		uint16 id; //upgrade id bit
 		string name; //name of the upgrade
 		string description; //upgrade description
@@ -44,37 +46,54 @@ contract MetaContract {
 		//function (Game) constant returns uint64 customFunc storage; //custom function for PoS and stuff
 	}
 
-	struct UpgradeTree {
+	struct UpgradeTreeData {
 		uint8 id;
-		mapping (uint16 => UpgradeMeta) upgrades; //mapping from bit to upgrade item
+		mapping (uint16 => UpgradeData) upgrades; //mapping from bit to upgrade item
 	}
 
-	mapping(uint8 => mapping (uint8 => UpgradeMeta)) coinUpgradeTable;
-	mapping(uint8 => mapping (uint8 => UpgradeTree)) itemUpgradeTreeTable;
-	mapping(uint8 => mapping (uint16 => UpgradeMeta)) itemBaseUpgradeTable;
+  //todo need to store an abstract upgrade tree to to copy from
+  // or store a whole abstract player?
 
-	function addCoin(string _name, string _description, string _nameShort) {
+	mapping(uint8 => mapping (uint8 => UpgradeData)) public coinUpgradeTable;
+	mapping(uint8 => mapping (uint8 => UpgradeTreeData)) public itemUpgradeTreeTable;
+	mapping(uint8 => mapping (uint16 => UpgradeData)) public itemBaseUpgradeTable;
+
+  Types.Game baseGame; //struct for storing the topology of a game, pointers to all
+                       //coins, items, etc.
+
+  address public owner;
+
+  function DataContract() {
+    owner = msg.sender;
+    coinNextId = 1; //0 is reserved
+    itemNextId = 1; //^
+
+  }
+
+	function addCoin(string _name, string _description, string _nameShort) returns (uint8) {
 					//modifiers- onlyOwner, coinTableNotFull
-	  CoinMeta memory _newCoin;
-		_newCoin.id = coinNextId++;
+	  CoinData memory _newCoin;
+		_newCoin.id = coinNextId;
 		_newCoin.name = _name;
 		_newCoin.description = _description;
 		_newCoin.nameShort = _nameShort;
 		coinTable[_newCoin.id] = _newCoin;
+		return coinNextId++;
 	}
 
-	function addItem(string _name, string _description, uint64 _basePrice, uint256 _baseIncome, uint8 _coinId) {
+	function addItem(string _name, string _description, uint64 _basePrice, uint256 _baseIncome, uint8 _coinId) returns (uint8) {
 	 //modifiers- ownlyOwner, ItemTableNotFull
-	  ItemMeta memory _newItem;
-    _newItem.id = itemNextId++;
+	  ItemData memory _newItem;
+    _newItem.id = itemNextId;
 		_newItem.name = _name;
 		_newItem.description = _description;
 		itemTable[_newItem.id] = _newItem;
+    return itemNextId++;
 	}
 
 	function convertBaseIncome(uint256 _baseIncome, uint8 _coinId) returns (uint256) {
 		require (coinTable[_coinId].id != 0); //make sure the coin exists and is non abstract
-      CoinMeta storage _coin = coinTable[_coinId];
+      CoinData storage _coin = coinTable[_coinId];
     //placeholder -- eventually ask the exchange for the conversion rate
     return _baseIncome;
 	}
@@ -82,14 +101,14 @@ contract MetaContract {
 	function getItemBaseStat(uint8 _itemId, uint8 _stat) returns (uint256) {
     //todo: add more stats;
 		require (itemTable[_itemId].id != 0);
-	    ItemMeta storage _item = itemTable[_itemId];
+	    ItemData storage _item = itemTable[_itemId];
 		if (_stat | INCOME != 0) {
 		  return convertBaseIncome(_item.baseIncome, _stat ^ INCOME); //stat XOR INCOME = coinid
 		}
     else
       revert();
 	}
-  function applyUpgradeStat(uint256 _value, uint8 _stat, uint8 upgradeId, uint8 tier) constant returns (uint256) {
+  function applyUpgradeStat(uint256 _value, uint8 _stat, uint8 _upgradeId, uint8 tier) constant returns (uint256) {
     //placeholder function
 		return _value;
 	}
